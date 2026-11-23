@@ -5,7 +5,7 @@ export type Role =
 export type Status = 'active' | 'freeze' | 'stop';
 export type ReqType = 'ТОВ' | 'ФОП' | 'Інвойс';
 
-export interface Member { id: string; name: string; role: Role; phone: string; telegram: string }
+export interface Member { id: string; name: string; role: Role; phone: string; telegram: string; email?: string }
 export interface Fop { id: string; name: string; code: string; iban: string; bank: string; group: string }
 export interface SvcType {
   id: string; name: string; short: string; team: 'traffic' | 'smm';
@@ -30,8 +30,10 @@ export interface InvoiceData {
 export interface Doc {
   id: string; type: string; name: string; date: string;
   demo?: boolean;
-  /** PDF, завантажений користувачем (data URL) */
+  /** PDF у локальному режимі (data URL) */
   data?: string;
+  /** PDF у сховищі Supabase */
+  path?: string;
   /** Рахунок, згенерований у системі */
   invoice?: InvoiceData;
 }
