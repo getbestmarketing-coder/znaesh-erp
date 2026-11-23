@@ -5,7 +5,7 @@ import { Icon } from './Icon';
 import { Logo } from './Logo';
 import { period } from './ui';
 import { db, commit, useDB, isMemOnly } from '@/lib/store';
-import { CLOUD, sb, BUCKET } from '@/lib/supabase';
+import { CLOUD, AUTH, sb, BUCKET } from '@/lib/supabase';
 import { ROLES, CURRENCIES, DOC_TYPES, SPECIALIST_ROLES } from '@/lib/dicts';
 import type { Client, Cur, Doc, Fop, InvoiceData, Member, Project, Role, Service, SvcType } from '@/lib/types';
 import {
@@ -284,10 +284,10 @@ export function MemberModal({ t }: { t?: Member }) {
         const email = (f.email || '').trim().toLowerCase();
         if (email && !/^\S+@\S+\.\S+$/.test(email)) return 'Перевірте пошту.';
         if (email && S.team.some((x) => x.id !== t?.id && (x.email || '').toLowerCase() === email)) return 'Ця пошта вже є в команді.';
-        if (t && t.id === S.me && CLOUD && email !== (t.email || '').toLowerCase()) return 'Свою пошту змінити не можна: ви втратите доступ.';
+        if (t && t.id === S.me && AUTH && email !== (t.email || '').toLowerCase()) return 'Свою пошту змінити не можна: ви втратите доступ.';
         const d = { ...f, name: f.name.trim(), email };
         if (t) Object.assign(T(t.id)!, d); else S.team.push({ id: uid('t'), ...d });
-        if (CLOUD && email && (!t || email !== (t.email || ''))) ui.toast(`Надішліть ${d.name} посилання на ERP: увійти можна з пошти ${email}`);
+        if (AUTH && email && (!t || email !== (t.email || ''))) ui.toast(`Надішліть ${d.name} посилання на ERP: увійти можна з пошти ${email}`);
         commit();
       }}>
       <div className="form">
