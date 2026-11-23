@@ -6,6 +6,10 @@ const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 /** true, якщо ERP підключена до спільної бази */
 export const CLOUD = !!(URL && KEY);
+/** true, якщо вхід тимчасово вимкнено: спільна база відкрита без авторизації */
+export const OPEN = CLOUD && process.env.NEXT_PUBLIC_ERP_OPEN === '1';
+/** true, якщо потрібен вхід за поштою */
+export const AUTH = CLOUD && !OPEN;
 
 let client: SupabaseClient | null = null;
 export function sb(): SupabaseClient {
