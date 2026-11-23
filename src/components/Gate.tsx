@@ -1,12 +1,13 @@
 'use client';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { CLOUD, sb } from '@/lib/supabase';
-import { db, loadCloud, listenCloud, bootstrap } from '@/lib/store';
+import { CLOUD, OPEN, sb } from '@/lib/supabase';
+import { db, loadCloud, listenCloud, bootstrap, OPEN_ME } from '@/lib/store';
+import { ROLES } from '@/lib/dicts';
 import { BASE } from '@/lib/utils';
 import { Logo } from './Logo';
 
-type Phase = 'loading' | 'login' | 'bootstrap' | 'denied' | 'ready' | 'error';
+type Phase = 'loading' | 'login' | 'bootstrap' | 'denied' | 'ready' | 'error' | 'pick';
 
 function Card({ children }: { children: ReactNode }) {
   return (
@@ -50,7 +51,7 @@ function Bootstrap({ email, onDone }: { email: string; onDone: () => void }) {
   return (
     <Card>
       <h1>Перший запуск</h1>
-      <p className="muted">База ще порожня. Ви станете власником ERP ({email}). Потім додасте команду в розділі «Команда».</p>
+      <p className="muted">{email ? <>База ще порожня. Ви станете власником ERP ({email}). Потім додасте команду в розділі «Команда».</> : <>База ще порожня. Ви станете власником ERP. Потім додасте команду в розділі «Команда».</>}</p>
       <form className="form" onSubmit={async (e) => {
         e.preventDefault(); if (!name.trim()) { setErr('Вкажіть ім’я та прізвище.'); return; }
         setBusy(true);
@@ -64,6 +65,24 @@ function Bootstrap({ email, onDone }: { email: string; onDone: () => void }) {
   );
 }
 
+/** Режим без входу: людина обирає себе зі списку команди */
+function Pick({ onDone }: { onDone: () => void }) {
+  const team = db().team;
+  return (
+    <Card>
+      <h1>Хто ви?</h1>
+      <p className="muted">Тестовий режим без входу. Оберіть себе, щоб нотатки й дії підписувались вашим ім’ям.</p>
+      <div className="list">
+        {team.map((t) => (
+          <button key={t.id} type="button" className="sr" onClick={() => { try { localStorage.setItem(OPEN_ME, t.id); } catch { /* */ } onDone(); }}>
+            <span><b>{t.name}</b><small>{ROLES[t.role]}</small></span>
+          </button>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 export function signOut() { return sb().auth.signOut().then(() => location.reload()); }
 
 /** Пускає в ERP лише учасників команди. У демо-режимі просто показує застосунок. */
@@ -73,8 +92,29 @@ export function Gate({ children }: { children: ReactNode }) {
   const [err, setErr] = useState('');
   const [tick, setTick] = useState(0);
 
+  /* тестовий режим без входу */
   useEffect(() => {
-    if (!CLOUD) return;
+    if (!OPEN) return;
+    let alive = true;
+    (async () => {
+      try {
+        setPhase('loading');
+        await loadCloud();
+        if (!db().team.length) { if (alive) setPhase('bootstrap'); return; }
+        let id = ''; try { id = localStorage.getItem(OPEN_ME) || ''; } catch { /* */ }
+        const me = db().team.find((t) => t.id === id);
+        if (!me) { if (alive) setPhase('pick'); return; }
+        db().me = me.id; listenCloud();
+        if (alive) setPhase('ready');
+      } catch (x) {
+        if (alive) { setErr((x as Error).message); setPhase('error'); }
+      }
+    })();
+    return () => { alive = false; };
+  }, [tick]);
+
+  useEffect(() => {
+    if (!CLOUD || OPEN) return;
     sb().auth.getSession().then(({ data }) => { setSession(data.session); if (!data.session) setPhase('login'); });
     const { data: sub } = sb().auth.onAuthStateChange((_e, s) => { setSession(s); if (!s) setPhase('login'); });
     return () => sub.subscription.unsubscribe();
@@ -104,6 +144,8 @@ export function Gate({ children }: { children: ReactNode }) {
 
   if (phase === 'ready') return <>{children}</>;
   if (phase === 'login') return <Login />;
+  if (OPEN && phase === 'bootstrap') return <Bootstrap email="" onDone={() => setTick((t) => t + 1)} />;
+  if (phase === 'pick') return <Pick onDone={() => setTick((t) => t + 1)} />;
   if (phase === 'bootstrap' && session) return <Bootstrap email={(session.user.email || '').toLowerCase()} onDone={() => setTick((t) => t + 1)} />;
   if (phase === 'denied') return <Card><h1>Немає доступу</h1><p className="muted">Пошти <b>{session?.user.email}</b> немає в команді. Попросіть власника додати її в розділі «Команда» і увійдіть знову.</p><button type="button" className="btn" onClick={signOut}>Вийти</button></Card>;
   if (phase === 'error') return <Card><h1>Не вдалося підключитися</h1><p className="muted">{err}</p><button type="button" className="btn" onClick={() => location.reload()}>Спробувати ще раз</button></Card>;
