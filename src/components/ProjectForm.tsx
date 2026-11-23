@@ -40,7 +40,18 @@ export function ProjectForm({ id }: { id?: string | null }) {
   if (!isNew && !p0) return <div className="page"><PageHead title="Проект не знайдено" actions={<Link className="btn" href="/projects">До проектів</Link>} /></div>;
   const back = isNew ? '/projects' : `/project?id=${p0!.id}`;
 
-  const onLogo = (file?: File) => { if (!file) return; const r = new FileReader(); r.onload = () => setF((x) => ({ ...x, logo: String(r.result) })); r.readAsDataURL(file); };
+  /** Логотип зменшуємо до 160 px, щоб база лишалась легкою */
+  const onLogo = (file?: File) => {
+    if (!file) return;
+    const img = new Image(); const u = URL.createObjectURL(file);
+    img.onload = () => {
+      const k = Math.min(1, 160 / Math.max(img.width, img.height)); const c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(u);
+      setF((x) => ({ ...x, logo: c.toDataURL('image/webp', 0.85) }));
+    };
+    img.src = u;
+  };
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -83,8 +94,8 @@ export function ProjectForm({ id }: { id?: string | null }) {
           </div>
           <div className="row3">
             <Fld id="pStatus" label="Статус"><select className="sel" id="pStatus" value={f.status} onChange={set('status')}>{Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v.l}</option>)}</select></Fld>
-            <Fld id="pCm" label="Клієнт-менеджер"><select className="sel" id="pCm" value={f.cm} onChange={set('cm')}>{S.team.filter((t) => t.role === 'cm').map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></Fld>
-            <Fld id="pCoo" label="Операційний директор"><select className="sel" id="pCoo" value={f.coo} onChange={set('coo')}>{S.team.filter((t) => t.role === 'coo').map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></Fld>
+            <Fld id="pCm" label="Клієнт-менеджер"><select className="sel" id="pCm" value={f.cm} onChange={set('cm')}><option value="">Не призначено</option>{S.team.filter((t) => t.role === 'cm').map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></Fld>
+            <Fld id="pCoo" label="Операційний директор"><select className="sel" id="pCoo" value={f.coo} onChange={set('coo')}><option value="">Не призначено</option>{S.team.filter((t) => t.role === 'coo').map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></Fld>
           </div>
         </fieldset>
         <fieldset><legend>Замовник</legend>
@@ -118,7 +129,7 @@ export function ProjectForm({ id }: { id?: string | null }) {
             <Fld id="rIban" label="IBAN або рахунок"><input className="inp" id="rIban" value={f.rIban} onChange={set('rIban')} /></Fld>
             <Fld id="rAddr" label="Адреса"><input className="inp" id="rAddr" value={f.rAddr} onChange={set('rAddr')} /></Fld>
           </div>
-          <Fld id="pFop" label="Оплати надходять на ФОП"><select className="sel" id="pFop" value={f.fop} onChange={set('fop')}>{S.fops.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></Fld>
+          <Fld id="pFop" label="Оплати надходять на ФОП"><select className="sel" id="pFop" value={f.fop} onChange={set('fop')}><option value="">Ще не обрано</option>{S.fops.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></Fld>
         </fieldset>
         {isNew && (
           <fieldset><legend>Послуги на цей місяць</legend>
