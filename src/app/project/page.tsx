@@ -12,7 +12,7 @@ import { TODAY, fD, fLY, money, url, tg, uid, isUrl, plural } from '@/lib/utils'
 import { PageHead, BackLink, Thumb, StatusBadge, NewBadge, Badge, Seg, Person, PersonC } from '@/components/ui';
 import { Icon, type IconName } from '@/components/Icon';
 import { SvcTable } from '@/components/SvcTable';
-import { useActions } from '@/components/dialogs';
+import { useActions, deleteDoc } from '@/components/dialogs';
 import { useUI } from '@/components/overlay';
 
 function WorkLinks({ p }: { p: Project }) {
@@ -109,7 +109,7 @@ function ProjectView() {
               <div className="list">{docs.map((d) => (
                 <div key={d.id} className="li"><span className="doc-ico" aria-hidden="true"><Icon name="file" size={20} /></span>
                   <div className="grow"><button type="button" className="doc-link" onClick={() => act.openDoc(d)}>{d.name}</button><small>{d.type}, {fD(d.date)}{d.demo ? ', демо без файлу' : ''}</small></div>
-                  <button type="button" className="btn icon sm danger" aria-label={`Видалити ${d.name}`} onClick={() => ui.confirm('Видалити документ? Скасувати це не можна.', () => { p.docs = p.docs.filter((x) => x.id !== d.id); commit(); })}><Icon name="trash" size={16} /></button>
+                  <button type="button" className="btn icon sm danger" aria-label={`Видалити ${d.name}`} onClick={() => ui.confirm('Видалити документ? Скасувати це не можна.', () => deleteDoc(p, d))}><Icon name="trash" size={16} /></button>
                 </div>
               ))}</div>
             ) : <p className="empty">Документів цього типу немає.</p>}
