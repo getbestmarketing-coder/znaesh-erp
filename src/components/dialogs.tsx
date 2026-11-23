@@ -1,10 +1,11 @@
 'use client';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Modal, useUI } from './overlay';
 import { Icon } from './Icon';
 import { Logo } from './Logo';
 import { period } from './ui';
 import { db, commit, useDB, isMemOnly } from '@/lib/store';
+import { CLOUD, sb, BUCKET } from '@/lib/supabase';
 import { ROLES, CURRENCIES, DOC_TYPES, SPECIALIST_ROLES } from '@/lib/dicts';
 import type { Client, Cur, Doc, Fop, InvoiceData, Member, Project, Role, Service, SvcType } from '@/lib/types';
 import {
@@ -19,6 +20,7 @@ export function SpecOptions({ typeId }: { typeId: string }) {
   const other = S.team.filter((m) => !t?.roles.includes(m.role) && SPECIALIST_ROLES.includes(m.role));
   return (
     <>
+      <option value="">Не призначено</option>
       <optgroup label={t?.roles.map((r) => ROLES[r]).join(', ') || ''}>
         {pref.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
       </optgroup>
@@ -163,6 +165,7 @@ export function InvoiceModal({ p }: { p: Project }) {
   const [fopId, setFop] = useState(p.fop);
   const [sel, setSel] = useState<string[]>(unpaid.map((s) => s.id));
   if (!unpaid.length) return <Modal title="Згенерувати рахунок"><p>Усі поточні послуги цього проекту оплачені, рахунок не потрібен.</p></Modal>;
+  if (!S.fops.length) return <Modal title="Згенерувати рахунок"><p>Спершу додайте ФОП у розділі «Адміністрування»: рахунок виставляється на нього.</p></Modal>;
   const no = `INV-${String(S.invoiceSeq + 1).padStart(4, '0')}`;
   const data: InvoiceData = {
     no, date: TODAY, fop: FOP(fopId) || S.fops[0], buyer: p.req, issuedBy: T(p.cm)?.name || '',
@@ -203,6 +206,15 @@ export function UploadModal({ p }: { p: Project }) {
   return (
     <Modal title="Завантажити документ" primary="Завантажити" onSave={() => {
       if (!file) return 'Оберіть PDF-файл.';
+      if (CLOUD) {
+        const path = `${p.id}/${uid('f')}.pdf`;
+        sb().storage.from(BUCKET).upload(path, file, { contentType: 'application/pdf' }).then(({ error }) => {
+          if (error) { ui.toast('Не вдалося завантажити файл: ' + error.message); return; }
+          PJ(p.id)!.docs.push({ id: uid('d'), type, name: file.name, date: date || TODAY, path });
+          commit(); ui.close(); ui.toast('Документ завантажено');
+        });
+        return false;
+      }
       const r = new FileReader();
       r.onload = () => {
         PJ(p.id)!.docs.push({ id: uid('d'), type, name: file.name, date: date || TODAY, data: String(r.result) });
@@ -227,6 +239,7 @@ export function DocModal({ d }: { d: Doc }) {
     const inv = d.invoice;
     return <Modal title={d.name} lg left={<button type="button" className="btn" onClick={() => ui.print(<Invoice d={inv} />)}><Icon name="print" size={16} />Друк або PDF</button>}><Invoice d={inv} /></Modal>;
   }
+  if (d.path) return <CloudDoc d={d} />;
   if (d.data) {
     const b = atob(d.data.split(',')[1]); const u = new Uint8Array(b.length);
     for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i);
@@ -236,21 +249,45 @@ export function DocModal({ d }: { d: Doc }) {
   return <Modal title={d.name}><p>Це демо-документ без файлу. Завантажте справжній PDF кнопкою «Завантажити PDF».</p></Modal>;
 }
 
+function CloudDoc({ d }: { d: Doc }) {
+  const [src, setSrc] = useState(''); const [err, setErr] = useState('');
+  useEffect(() => {
+    sb().storage.from(BUCKET).createSignedUrl(d.path!, 600).then(({ data, error }) => { if (error) setErr(error.message); else setSrc(data.signedUrl); });
+  }, [d.path]);
+  return (
+    <Modal title={d.name} lg left={src && <a className="btn" href={src} target="_blank" rel="noopener noreferrer"><Icon name="link" size={16} />Відкрити в новій вкладці</a>}>
+      {err ? <p className="form-error">{err}</p> : src ? <iframe src={src} style={{ width: '100%', height: '70dvh', border: 0, borderRadius: 10 }} title={d.name} /> : <p className="muted">Завантажую…</p>}
+    </Modal>
+  );
+}
+/** Видаляє документ разом із файлом у сховищі */
+export function deleteDoc(p: Project, d: Doc) {
+  PJ(p.id)!.docs = PJ(p.id)!.docs.filter((x) => x.id !== d.id); commit();
+  if (CLOUD && d.path) sb().storage.from(BUCKET).remove([d.path]);
+}
+
 /* ---------- команда, ФОП, замовник, каталог ---------- */
 export function MemberModal({ t }: { t?: Member }) {
   const S = useDB(); const ui = useUI();
-  const [f, setF] = useState<Omit<Member, 'id'>>(t ? { ...t } : { name: '', role: 'target', phone: '', telegram: '' });
+  const [f, setF] = useState<Omit<Member, 'id'>>(t ? { ...t, email: t.email || '' } : { name: '', role: 'target', phone: '', telegram: '', email: '' });
   const set = (p: Partial<Member>) => setF((x) => ({ ...x, ...p }));
   return (
     <Modal title={t ? 'Людина в команді' : 'Нова людина в команді'}
       left={t && <button type="button" className="btn danger" onClick={() => {
         const used = S.services.some((s) => s.specialistId === t.id) || S.projects.some((p) => p.cm === t.id || p.coo === t.id);
         if (used) { ui.toast('Людина закріплена за проектами. Спершу призначте на них когось іншого.'); return; }
+        if (t.id === S.me) { ui.toast('Себе видалити не можна.'); return; }
         S.team = S.team.filter((x) => x.id !== t.id); commit(); ui.close();
       }}><Icon name="trash" size={16} />Видалити</button>}
       onSave={() => {
         if (!f.name.trim()) return 'Вкажіть ім’я.';
-        if (t) Object.assign(T(t.id)!, f); else S.team.push({ id: uid('t'), ...f });
+        const email = (f.email || '').trim().toLowerCase();
+        if (email && !/^\S+@\S+\.\S+$/.test(email)) return 'Перевірте пошту.';
+        if (email && S.team.some((x) => x.id !== t?.id && (x.email || '').toLowerCase() === email)) return 'Ця пошта вже є в команді.';
+        if (t && t.id === S.me && CLOUD && email !== (t.email || '').toLowerCase()) return 'Свою пошту змінити не можна: ви втратите доступ.';
+        const d = { ...f, name: f.name.trim(), email };
+        if (t) Object.assign(T(t.id)!, d); else S.team.push({ id: uid('t'), ...d });
+        if (CLOUD && email && (!t || email !== (t.email || ''))) ui.toast(`Надішліть ${d.name} посилання на ERP: увійти можна з пошти ${email}`);
         commit();
       }}>
       <div className="form">
@@ -262,6 +299,8 @@ export function MemberModal({ t }: { t?: Member }) {
           <Fld id="mPhone" label="Телефон"><input className="inp" id="mPhone" type="tel" inputMode="tel" value={f.phone} onChange={(e) => set({ phone: e.target.value })} /></Fld>
           <Fld id="mTg" label="Telegram"><input className="inp" id="mTg" value={f.telegram} onChange={(e) => set({ telegram: e.target.value })} /></Fld>
         </div>
+        <Fld id="mEmail" label="Пошта для входу" hint={CLOUD ? 'Людина зможе увійти в ERP лише з цієї пошти. Без пошти доступу немає.' : 'У демо-режимі вхід не потрібен.'}>
+          <input className="inp" id="mEmail" type="email" autoComplete="off" value={f.email || ''} onChange={(e) => set({ email: e.target.value })} /></Fld>
         <Fld id="mAcc" label="Права доступу"><select className="sel" id="mAcc" disabled><option>Повний доступ, поки всі бачать усе</option></select></Fld>
       </div>
     </Modal>
@@ -348,7 +387,8 @@ export function useActions() {
     pay: (s: Service) => ui.open(<PayModal key={uid('m')} s={s} />),
     editSvc: (s: Service) => ui.open(<ServiceModal key={uid('m')} s={s} />),
     addSvc: (projectId?: string, free = false) => {
-      const S = db(); const pid = projectId || S.projects[0].id;
+      const S = db(); const pid = projectId || S.projects[0]?.id;
+      if (!pid) { ui.toast('Спершу створіть проект'); return; }
       ui.open(<ServiceModal key={uid('m')} s={newSvcDefaults(pid, 'meta', free)} isNew withProject={!projectId} free={free} />);
     },
     toPaid: (s: Service) => {
