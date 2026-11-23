@@ -898,3 +898,6 @@ a.tile:hover{text-decoration:none;background:var(--soft)}
 .pfilters .sel.inline{max-width:180px;height:34px;font-size:13px}
 .pfilters .sel.on{background-color:var(--ink)!important;color:var(--canvas)}
 @media (max-width:760px){.pfilters{width:100%}.pfilters .sel.inline{flex:1 1 calc(50% - 8px);max-width:none}}
+
+/* дні до кінця послуги: жирним */
+.sl-t small em{font-style:normal;font-weight:700;color:var(--ink)}
