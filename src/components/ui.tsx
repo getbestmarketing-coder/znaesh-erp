@@ -6,7 +6,6 @@ import { STATUS, ROLES } from '@/lib/dicts';
 import type { Project, Service, Status } from '@/lib/types';
 import { T, debtUAH, daysLeft, ST } from '@/lib/domain';
 import { TODAY, fDs, fD, dayWord, initials, money, shortName, BASE } from '@/lib/utils';
-import { getPrefs } from '@/lib/store';
 
 export const cx = (...a: (string | false | null | undefined)[]) => a.filter(Boolean).join(' ');
 
@@ -17,14 +16,10 @@ export const FreeBadge = () => <Badge t="free">Безкоштовно</Badge>;
 
 export const Ava = ({ name }: { name?: string }) => <span className="ava" aria-hidden="true">{initials(name)}</span>;
 
-const PAL = [['#E8E9FF', '#2B2FE0'], ['#E3F4EA', '#1F7A45'], ['#FFF0D9', '#9A5800'], ['#FDE7EC', '#B4234A'], ['#E4F1FB', '#1C6DA8'], ['#EFE8FB', '#6B3FB5'], ['#E5F4F1', '#1E7468'], ['#F3EDE6', '#7A5232']];
-const PAL_D = [['#26285C', '#A9ABFF'], ['#173A24', '#5EE08A'], ['#3D2C0D', '#FFC266'], ['#45182A', '#FF8FAE'], ['#14304A', '#7CC4FF'], ['#2F2148', '#C9A8FF'], ['#123A35', '#5FD8C6'], ['#3A2C1F', '#E0B48A']];
-function avaStyle(name: string, size: number): CSSProperties {
-  let h = 7; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  const [background, color] = (getPrefs().theme === 'dark' ? PAL_D : PAL)[h % PAL.length];
-  return { background, color, width: size, height: size, fontSize: Math.max(9, Math.round(size * 0.34)) };
+function avaStyle(_name: string, size: number): CSSProperties {
+  return { width: size, height: size, fontSize: Math.max(9, Math.round(size * 0.34)) };
 }
-/** Кольоровий аватар з ініціалами */
+/** Аватар з ініціалами */
 export const AvaX = ({ name, size = 32 }: { name: string; size?: number }) =>
   <span className="avx" style={avaStyle(name, size)} aria-hidden="true">{initials(name)}</span>;
 
