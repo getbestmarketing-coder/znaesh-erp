@@ -15,6 +15,8 @@ import { CLOUD, sb, TABLE } from './supabase';
 
 const LS = 'znaesh-erp-next-v1';
 const PREFS = 'znaesh-erp-prefs';
+/** Режим без входу: хто працює в цьому браузері */
+export const OPEN_ME = 'znaesh-erp-me';
 
 type Kind = 'team' | 'fop' | 'stype' | 'client' | 'project' | 'service' | 'settings';
 const KINDS: [Kind, 'team' | 'fops' | 'serviceTypes' | 'clients' | 'projects' | 'services'][] = [
@@ -167,11 +169,12 @@ export function listenCloud() {
 }
 
 /** Перший вхід у порожню базу: створює власника, каталог послуг і курси */
-export async function bootstrap(name: string, email: string) {
+export async function bootstrap(name: string, email = '') {
   const owner = { id: 't' + Date.now().toString(36), name, role: 'owner' as const, phone: '', telegram: '', email };
   const { error } = await sb().from(TABLE).insert({ kind: 'team', id: owner.id, data: owner });
   if (error) throw error;
   const base = emptyState(owner.id);
+  try { localStorage.setItem(OPEN_ME, owner.id); } catch { /* приватний режим */ }
   const rows = [
     { kind: 'settings', id: 'main', data: { rates: base.rates, invoiceSeq: 0 } },
     ...base.serviceTypes.map((t) => ({ kind: 'stype', id: t.id, data: t })),
