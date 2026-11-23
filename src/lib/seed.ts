@@ -23,16 +23,8 @@ export function seed(): State {
     { id: 'f3', name: 'ФОП Савчук Ірина Василівна', code: '3398120456', iban: 'UA67 3510 0500 0002 6000 8812 4410 2', bank: 'АТ «Укрсиббанк»', group: '3 група, 5%' },
   ];
 
-  const serviceTypes: State['serviceTypes'] = [
-    { id: 'meta', name: 'Таргетована реклама Meta', short: 'Meta', team: 'traffic', roles: ['target'], price: 390, currency: 'EUR' },
-    { id: 'tiktok', name: 'Таргетована реклама TikTok', short: 'TikTok', team: 'traffic', roles: ['target'], price: 390, currency: 'EUR' },
-    { id: 'context', name: 'Контекстна реклама', short: 'Google Ads', team: 'traffic', roles: ['google'], price: 390, currency: 'EUR' },
-    { id: 'shopping', name: 'Google Shopping', short: 'Google Shopping', team: 'traffic', roles: ['google'], price: 390, currency: 'EUR' },
-    { id: 'youtube', name: 'YouTube реклама', short: 'YouTube', team: 'traffic', roles: ['google'], price: 350, currency: 'EUR' },
-    { id: 'smm', name: 'Комплексний СММ', short: 'СММ', team: 'smm', roles: ['designer', 'video'], price: 590, currency: 'USD' },
-    { id: 'pack', name: 'Упаковка профілю', short: 'Упаковка', team: 'smm', roles: ['designer'], price: 290, currency: 'USD' },
-  ];
-  const rates: Record<Cur, number> = { USD: 41.85, EUR: 48.7, UAH: 1 };
+  const serviceTypes = defaultTypes();
+  const rates = defaultRates();
 
   const clients = ([
     ['c1', 'Гнатюк Роман Ігорович', '+380 67 123 45 67', '@roman_hnatiuk'],
@@ -120,4 +112,23 @@ export function seed(): State {
   N('p10', 'Тестуємо TikTok безкоштовно 2 тижні. Якщо CPL буде нижче 120 ₴, переводимо в платну послугу.', 't6', addDays(TODAY, -4));
 
   return { v: 2, rates, fops, serviceTypes, team, clients, projects, services, invoiceSeq: 421, me: 't1' };
+}
+
+/** Каталог послуг агенції. Ціни можна змінити в розділі «Послуги → Каталог і ціни». */
+export function defaultTypes(): State['serviceTypes'] {
+  return [
+    { id: 'meta', name: 'Таргетована реклама Meta', short: 'Meta', team: 'traffic', roles: ['target'], price: 390, currency: 'EUR' },
+    { id: 'tiktok', name: 'Таргетована реклама TikTok', short: 'TikTok', team: 'traffic', roles: ['target'], price: 390, currency: 'EUR' },
+    { id: 'context', name: 'Контекстна реклама', short: 'Google Ads', team: 'traffic', roles: ['google'], price: 390, currency: 'EUR' },
+    { id: 'shopping', name: 'Google Shopping', short: 'Google Shopping', team: 'traffic', roles: ['google'], price: 390, currency: 'EUR' },
+    { id: 'youtube', name: 'YouTube реклама', short: 'YouTube', team: 'traffic', roles: ['google'], price: 350, currency: 'EUR' },
+    { id: 'smm', name: 'Комплексний СММ', short: 'СММ', team: 'smm', roles: ['designer', 'video'], price: 590, currency: 'USD' },
+    { id: 'pack', name: 'Упаковка профілю', short: 'Упаковка', team: 'smm', roles: ['designer'], price: 290, currency: 'USD' },
+  ];
+}
+export const defaultRates = (): Record<Cur, number> => ({ USD: 41.85, EUR: 48.7, UAH: 1 });
+
+/** Порожня робоча база: лише каталог послуг і курси */
+export function emptyState(me = ''): State {
+  return { v: 2, rates: defaultRates(), fops: [], serviceTypes: defaultTypes(), team: [], clients: [], projects: [], services: [], invoiceSeq: 0, me };
 }
