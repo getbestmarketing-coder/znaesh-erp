@@ -3,7 +3,8 @@ import Link from 'next/link';
 import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useDB, usePrefs, setPrefs, commit } from '@/lib/store';
-import { CL, isNew, projectDebt, currentSvcs, nextSvc } from '@/lib/domain';
+import { CL, isNew, projectDebt, currentSvcs, nextSvc, isTraffic } from '@/lib/domain';
+import { SPECIALIST_ROLES } from '@/lib/dicts';
 import type { Project } from '@/lib/types';
 import { plural } from '@/lib/utils';
 import { PageHead, NewProjectBtn, Seg, SearchPill } from '@/components/ui';
@@ -23,9 +24,26 @@ function Projects() {
   const [tab, setTab] = useState<Tab>((params.get('tab') as Tab) || 'all');
   const [q, setQ] = useState('');
   const [sel, setSel] = useState<Set<string>>(new Set());
+  const [fSpec, setFSpec] = useState(''); const [fLead, setFLead] = useState('');
+  const [fSvc, setFSvc] = useState(''); const [fProj, setFProj] = useState('');
+  const anyF = !!(fSpec || fLead || fSvc || fProj);
+  const resetF = () => { setFSpec(''); setFLead(''); setFSvc(''); setFProj(''); };
+  /* фільтри дивляться на поточні послуги проекту */
+  const byPeople = (p: Project) => {
+    if (fProj && p.id !== fProj) return false;
+    if (!fSpec && !fLead && !fSvc) return true;
+    const cur = currentSvcs(p.id);
+    if (fSpec && !cur.some((x) => x.specialistId === fSpec)) return false;
+    if (fSvc && !cur.some((x) => x.typeId === fSvc)) return false;
+    if (fLead && !cur.some(isTraffic)) return false;
+    return true;
+  };
+  const specs = S.team.filter((m) => SPECIALIST_ROLES.includes(m.role)).sort((a, b) => a.name.localeCompare(b.name, 'uk'));
+  const leads = S.team.filter((m) => m.role === 'tl_traffic');
+  const byNo = [...S.projects].sort((a, b) => a.no - b.no);
   const tf = TABS.find((t) => t[0] === tab) || TABS[0];
   const s = q.toLowerCase();
-  const list = S.projects.filter(tf[2]).filter((p) => !s || `${p.name} ${CL(p.clientId)?.name || ''} ${p.no}`.toLowerCase().includes(s)).sort((a, b) => a.no - b.no);
+  const list = S.projects.filter(tf[2]).filter(byPeople).filter((p) => !s || `${p.name} ${CL(p.clientId)?.name || ''} ${p.no}`.toLowerCase().includes(s)).sort((a, b) => a.no - b.no);
   const full = prefs.pdense !== 'compact';
 
   const bulkRenew = () => {
@@ -42,7 +60,30 @@ function Projects() {
     <div className={`page ${full ? 'wide' : ''}`}>
       <PageHead title="Проекти" actions={<NewProjectBtn />} />
       <div className="bar-row pl-top">
-        <Seg label="Фільтр проектів" value={tab} onChange={setTab} items={TABS.map((t) => [t[0], t[1], S.projects.filter(t[2]).length])} />
+        <Seg label="Фільтр проектів" value={tab} onChange={setTab} items={TABS.map((t) => [t[0], t[1], S.projects.filter(t[2]).filter(byPeople).length])} />
+        <div className="pfilters" role="group" aria-label="Фільтри">
+          <label className="visually-hidden" htmlFor="fSpec">Спеціаліст</label>
+          <select id="fSpec" className={`sel inline ${fSpec ? 'on' : ''}`} value={fSpec} onChange={(e) => setFSpec(e.target.value)}>
+            <option value="">Усі спеціалісти</option>
+            {specs.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+          </select>
+          <label className="visually-hidden" htmlFor="fLead">Тімлід трафіку</label>
+          <select id="fLead" className={`sel inline ${fLead ? 'on' : ''}`} value={fLead} onChange={(e) => setFLead(e.target.value)}>
+            <option value="">Усі тімліди</option>
+            {leads.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+          </select>
+          <label className="visually-hidden" htmlFor="fSvc">Послуга</label>
+          <select id="fSvc" className={`sel inline ${fSvc ? 'on' : ''}`} value={fSvc} onChange={(e) => setFSvc(e.target.value)}>
+            <option value="">Усі послуги</option>
+            {S.serviceTypes.map((t) => <option key={t.id} value={t.id}>{t.short}</option>)}
+          </select>
+          <label className="visually-hidden" htmlFor="fProj">Проект</label>
+          <select id="fProj" className={`sel inline ${fProj ? 'on' : ''}`} value={fProj} onChange={(e) => setFProj(e.target.value)}>
+            <option value="">Усі проекти</option>
+            {byNo.map((x) => <option key={x.id} value={x.id}>{x.no}. {x.name}</option>)}
+          </select>
+          {anyF && <button type="button" className="btn quiet sm" onClick={resetF}>Скинути</button>}
+        </div>
         <div className="tools">
           <SearchPill id="pq" placeholder="Пошук проекту" value={q} onChange={setQ} />
           <div className="seg icons" role="group" aria-label="Вигляд списку">
@@ -55,9 +96,10 @@ function Projects() {
         full ? <ProjectTable list={list} sel={sel} setSel={setSel} /> : <div className="plist dense">{list.map((p) => <ProjectCompact key={p.id} p={p} />)}</div>
       ) : (
         <div className="sec pl-empty">
-          <h2>{q ? 'Нічого не знайдено' : 'Тут поки порожньо'}</h2>
+          <h2>{q || anyF ? 'Нічого не знайдено' : 'Тут поки порожньо'}</h2>
           <p className="muted">{q ? `За запитом «${q}» проектів немає. Перевірте назву або номер.` : 'У цьому фільтрі немає проектів.'}</p>
-          {!q && <Link className="btn primary" href="/project/new"><Icon name="plus" size={16} />Новий проект</Link>}
+          {anyF && <button type="button" className="btn" onClick={resetF}>Скинути фільтри</button>}
+          {!q && !anyF && <Link className="btn primary" href="/project/new"><Icon name="plus" size={16} />Новий проект</Link>}
         </div>
       )}
       {sel.size > 0 && (
