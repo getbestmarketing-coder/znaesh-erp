@@ -771,8 +771,7 @@ button.me-ava{border:0;cursor:pointer;font:inherit;font-size:10px;font-weight:60
 @media (prefers-reduced-motion:reduce){.page{animation:none}}
 
 /* навігація */
-.gnav{background:color-mix(in srgb,var(--canvas) 82%,transparent);border-bottom:1px solid var(--line)}
-[data-theme="dark"] .gnav{background:rgba(10,10,10,.78);border-bottom-color:rgba(242,242,238,.06)}
+.gnav,[data-theme="dark"] .gnav{background:var(--canvas);backdrop-filter:none;-webkit-backdrop-filter:none;border-bottom:1px solid var(--line)}
 .gnav-links a,[data-theme="dark"] .gnav-links a{color:var(--gray)!important}
 .gnav-links a:hover,.gnav-links a[aria-current],[data-theme="dark"] .gnav-links a[aria-current],[data-theme="dark"] .gnav-links a:hover{color:var(--ink)!important}
 .gnav-links .dot-n{color:var(--gray-2)!important}
@@ -893,3 +892,9 @@ a.tile:hover{text-decoration:none;background:var(--soft)}
   .panel section{padding:20px 18px}
   .page-head{padding:36px 0 24px}
 }
+
+/* фільтри проектів */
+.pfilters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pfilters .sel.inline{max-width:180px;height:34px;font-size:13px}
+.pfilters .sel.on{background-color:var(--ink)!important;color:var(--canvas)}
+@media (max-width:760px){.pfilters{width:100%}.pfilters .sel.inline{flex:1 1 calc(50% - 8px);max-width:none}}
