@@ -7,8 +7,8 @@ import { Logo } from './Logo';
 import { OverlayProvider } from './overlay';
 import { Ava, Thumb } from './ui';
 import { NAV, ROLES } from '@/lib/dicts';
-import { useDB, usePrefs, setPrefs, isMemOnly, getSync } from '@/lib/store';
-import { CLOUD } from '@/lib/supabase';
+import { useDB, usePrefs, setPrefs, isMemOnly, getSync, OPEN_ME } from '@/lib/store';
+import { CLOUD, OPEN } from '@/lib/supabase';
 import { Gate, signOut } from './Gate';
 import { useUI } from './overlay';
 import { CL, T, debtProjectsCount } from '@/lib/domain';
@@ -67,6 +67,10 @@ function SyncState() {
 function MeButton({ name, role, email }: { name?: string; role: string; email?: string }) {
   const ui = useUI();
   if (!CLOUD) return <span className="me-ava" title={`${name}, ${role}`}>{initials(name)}</span>;
+  if (OPEN) return (
+    <button type="button" className="me-ava" title={`${name}, ${role}`} aria-label="Змінити користувача"
+      onClick={() => ui.confirm(<>Зараз ви працюєте як <b>{name}</b>. Обрати іншу людину з команди?</>, () => { try { localStorage.removeItem(OPEN_ME); } catch { /* */ } location.reload(); }, 'Змінити')}>{initials(name)}</button>
+  );
   return (
     <button type="button" className="me-ava" title={`${name}, ${role}`} aria-label="Мій профіль"
       onClick={() => ui.confirm(<>Ви увійшли як <b>{name}</b> ({email}). Вийти з ERP?</>, () => { signOut(); }, 'Вийти')}>{initials(name)}</button>
@@ -114,7 +118,7 @@ function Shell({ children }: { children: ReactNode }) {
       <footer className="footer"><div className="in">
         <span>Поточний період: <b>з {fLY(CUR_START)} по {fLY(CUR_END)}</b></span>
         <span>Курс: <b>USD {S.rates.USD.toFixed(2)} ₴</b>, <b>EUR {S.rates.EUR.toFixed(2)} ₴</b></span>
-        <span>Доступ: поки всі бачать усе</span>
+        <span>Доступ: {OPEN ? 'тестовий режим без входу' : 'поки всі бачать усе'}</span>
         {CLOUD ? <SyncState /> : <span>Демо-режим: дані вигадані й живуть лише в цьому браузері</span>}
         {isMemOnly() && <span className="warn">Зміни не збережуться після перезавантаження сторінки.</span>}
       </div></footer>
