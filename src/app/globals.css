@@ -901,3 +901,7 @@ a.tile:hover{text-decoration:none;background:var(--soft)}
 
 /* дні до кінця послуги: жирним */
 .sl-t small em{font-style:normal;font-weight:700;color:var(--ink)}
+
+/* безкоштовно: подарунок */
+.free-ic{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--accent-glow);color:var(--accent);flex:none;vertical-align:middle}
+[data-theme="dark"] .free-ic{color:#A79BFF}
