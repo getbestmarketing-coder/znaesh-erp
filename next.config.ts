@@ -10,7 +10,7 @@ import fs from 'node:fs';
  * Якщо його немає, ERP працює в демо-режимі з даними в браузері.
  */
 const basePath = process.env.BASE_PATH || '';
-let cfg: { supabaseUrl?: string; supabaseAnonKey?: string } = {};
+let cfg: { supabaseUrl?: string; supabaseAnonKey?: string; openAccess?: boolean } = {};
 try { cfg = JSON.parse(fs.readFileSync('erp.config.json', 'utf8')); } catch { /* немає файлу */ }
 
 const config: NextConfig = {
@@ -22,6 +22,8 @@ const config: NextConfig = {
     NEXT_PUBLIC_BASE_PATH: basePath,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || cfg.supabaseUrl || '',
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || cfg.supabaseAnonKey || '',
+    // Тимчасовий режим без входу (openAccess: true в erp.config.json)
+    NEXT_PUBLIC_ERP_OPEN: cfg.openAccess ? '1' : '',
   },
 };
 
