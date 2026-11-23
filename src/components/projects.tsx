@@ -37,7 +37,7 @@ function PayMini({ s }: { s: Service }) {
 }
 
 function SvcLine({ s }: { s: Service }) {
-  const act = useActions(); const t = T(s.specialistId); const tl = trafficLead();
+  const t = T(s.specialistId); const tl = trafficLead();
   const ended = s.end < TODAY, fut = s.start > TODAY, d = daysLeft(s);
   const left = ended ? 'завершено' : fut ? `старт ${fDs(s.start)}` : d === 0 ? 'останній день' : `${d} ${dayWord(d)}`;
   const tone = ended || fut ? '' : d <= 3 ? 'hot' : d <= 7 ? 'warm' : '';
@@ -49,12 +49,8 @@ function SvcLine({ s }: { s: Service }) {
           <b title={svcName(s)}>{svcName(s)}</b>
           <small>
             <span className="sl-who" title={t ? `${t.name}, ${ROLES[t.role]}` : ''}>{t ? shortName(t.name) : 'не призначено'}</span>
-            <span className="dot" /><span className="num">{fDs(s.start)} – {fDs(s.end)}</span><em className={tone}>{left}</em>
+            <span className="dot" /><span className="num">({fDs(s.start)} – {fDs(s.end)})</span><em className={tone}>{left}</em>
           </small>
-        </span>
-        <span className="sl-acts">
-          <button type="button" className="tb ic sm" onClick={() => act.renew(s)} aria-label="Продовжити на наступний місяць" title="Продовжити на наступний місяць"><Icon name="refresh" size={14} /></button>
-          <button type="button" className="tb ic sm" onClick={() => act.editSvc(s)} aria-label="Редагувати послугу" title="Редагувати послугу"><Icon name="edit" size={14} /></button>
         </span>
       </span>
       <span className="sl-lead">{isTraffic(s) && tl && <Who id={tl.id} role="Тімлід трафіку" />}</span>
