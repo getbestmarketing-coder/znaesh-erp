@@ -1,4 +1,5 @@
 'use client';
+import { GSHOP_ICON } from './gshop';
 import Link from 'next/link';
 import type { ReactNode, CSSProperties } from 'react';
 import { Icon } from './Icon';
@@ -57,7 +58,7 @@ export const svcFamily = (typeId: string) => SVC_MAP[typeId] || typeId;
 export function SvcIcon({ type, size = 36 }: { type: string; size?: number }) {
   const k = SVC_MAP[type]; if (!k) return null;
   // eslint-disable-next-line @next/next/no-img-element
-  return <img className="i3d" src={`${BASE}/icons/${k}.webp`} width={size} height={size} alt="" loading="lazy" />;
+  return <img className="i3d" src={type === 'shopping' ? GSHOP_ICON : `${BASE}/icons/${k}.webp`} width={size} height={size} alt="" loading="lazy" />;
 }
 
 export function DaysBadge({ s }: { s: Service }) {
