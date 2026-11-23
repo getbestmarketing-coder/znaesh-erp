@@ -13,7 +13,8 @@ export const cx = (...a: (string | false | null | undefined)[]) => a.filter(Bool
 export const Badge = ({ t, children }: { t?: string; children: ReactNode }) => <span className={cx('badge', t)}>{children}</span>;
 export const StatusBadge = ({ s }: { s: Status }) => <Badge t={STATUS[s].t}>{STATUS[s].l}</Badge>;
 export const NewBadge = () => <Badge t="accent">Новий</Badge>;
-export const FreeBadge = () => <Badge t="free">Безкоштовно</Badge>;
+/** Безкоштовний період: іконка подарунка */
+export const FreeBadge = () => <span className="free-ic" role="img" aria-label="Безкоштовно" title="Безкоштовно"><Icon name="gift" size={16} /></span>;
 
 export const Ava = ({ name }: { name?: string }) => <span className="ava" aria-hidden="true">{initials(name)}</span>;
 
