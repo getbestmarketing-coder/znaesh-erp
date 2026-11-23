@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useDB, commit, resetData } from '@/lib/store';
 import { isCurrent, paidUAH } from '@/lib/domain';
 import { money } from '@/lib/utils';
+import { CLOUD } from '@/lib/supabase';
 import { PageHead } from '@/components/ui';
 import { Icon } from '@/components/Icon';
 import { FopModal } from '@/components/dialogs';
@@ -57,10 +58,10 @@ export default function Admin() {
             <p className="muted xs">Курс зберігається в кожній послузі окремо, тож його можна змінити і вручну.</p>
           </div>
         </section>
-        <section aria-labelledby="dh"><div className="sec-h"><h2 id="dh">Демо-дані</h2></div>
+        {!CLOUD && <section aria-labelledby="dh"><div className="sec-h"><h2 id="dh">Демо-дані</h2></div>
           <p className="small" style={{ maxWidth: '48ch' }}>Спеціалісти, проекти й замовники вигадані. Зміни зберігаються лише в цьому браузері.</p>
           <div className="mt16"><button type="button" className="btn danger" onClick={() => ui.confirm('Повернути початкові демо-дані? Усі ваші зміни зникнуть.', () => { resetData(); router.push('/'); }, 'Повернути')}><Icon name="refresh" size={16} />Повернути початкові дані</button></div>
-        </section>
+        </section>}
       </div>
     </div>
   );
